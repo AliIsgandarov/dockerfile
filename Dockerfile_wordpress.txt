@@ -1,0 +1,33 @@
+From ubuntu:18.04
+RUN apt-get update && apt-get install -y wget
+RUN apt-get install -y  apache2
+RUN wget https://wordpress.org/latest.zip
+RUN apt-get install -y  unzip
+RUN unzip latest.zip -d /var/www/
+RUN apt-get install -y git
+RUN git clone https://github.com/AliIsgandarov/wp-config.php1.git
+WORKDIR /wp-config.php1
+RUN    cp  wp-config.php /var/www/wordpress/wp-config-sample.php
+RUN rm wp-config.php
+WORKDIR /
+RUN git clone https://github.com/AliIsgandarov/wordpress.conf.git
+WORKDIR /wordpress.conf
+RUN cp wordpress.conf /etc/apache2/sites-available/wordpress.conf
+RUN rm wordpress.conf
+RUN ln -s  /etc/apache2/sites-available/wordpress.conf /wordpress.conf
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+WORKDIR /
+RUN apt-get install -qq php
+RUN apt-get install -y  mariadb-server
+RUN etc/init.d/mysql start && mysql -u root -e "CREATE DATABASE wordpress"
+RUN /etc/init.d/mysql start && mysql -u root -e "CREATE user 'wp-user'@'localhost' identified by '12345'"
+RUN /etc/init.d/mysql start && mysql -u root -e "grant all privileges on wordpress.* to 'wp-user'@'localhost'"
+RUN git clone https://github.com/AliIsgandarov/000-default.git
+WORKDIR /000-default
+RUN cp 000-default.conf /etc/apache2/sites-available/000-default.conf
+WORKDIR /var/www/wordpress/
+RUN cp  wp-config-sample.php wp-config.php
+RUN rm -f wp-config-sample.php
+RUN apt-get update
+RUN apt-get install php7.2-mysql
+ENTRYPOINT  /etc/init.d/apache2 start && /etc/init.d/mysql start && bash
